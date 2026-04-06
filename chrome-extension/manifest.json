@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Quick Dictionary",
+  "version": "1.0",
+  "description": "Shows the meaning of any selected word on a webpage.",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "css": ["style.css"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Quick Dictionary"
+  }
+}

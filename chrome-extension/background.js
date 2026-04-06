@@ -1,0 +1,43 @@
+// background.js
+// Handles API requests to avoid CORS issues on some pages and caches results
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'fetchMeaning') {
+    const word = request.word.toLowerCase();
+    
+    // Check cache first
+    chrome.storage.local.get([word], (result) => {
+      if (result[word]) {
+        sendResponse({ success: true, data: result[word] });
+      } else {
+        // Fetch from Free Dictionary API and Google Translate API
+        Promise.all([
+          fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`).then(res => {
+            if (!res.ok) throw new Error('Word not found');
+            return res.json();
+          }),
+          fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURIComponent(word)}`)
+            .then(res => res.ok ? res.json() : null)
+            .catch(() => null) // fail silently for translation
+        ])
+        .then(([dictData, transData]) => {
+          const hindiMeaning = transData && transData[0] && transData[0][0] && transData[0][0][0] ? transData[0][0][0] : '';
+          const combinedData = {
+            ...dictData[0],
+            hindiMeaning
+          };
+          
+          // Cache the successful result
+          chrome.storage.local.set({ [word]: combinedData });
+          sendResponse({ success: true, data: combinedData });
+        })
+        .catch(error => {
+          sendResponse({ success: false, error: error.message });
+        });
+      }
+    });
+    
+    // Return true to indicate we will send a response asynchronously
+    return true; 
+  }
+});

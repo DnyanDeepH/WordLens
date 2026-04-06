@@ -1,0 +1,5 @@
+{
+  "name": "WordLens",
+  "description": "A Chrome extension that shows word meanings on selection. Includes a live web demo.",
+  "requestFramePermissions": []
+}
