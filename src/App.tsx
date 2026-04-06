@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Download, Info, CheckCircle2, Puzzle, Settings, MousePointer2 } from 'lucide-react';
+import { BookOpen, Download, Info, CheckCircle2, Puzzle, Settings, MousePointer2, Power } from 'lucide-react';
 
 export default function App() {
   const [tooltipData, setTooltipData] = useState<any>(null);
@@ -12,16 +12,29 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isExtensionActive, setIsExtensionActive] = useState(true);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const isActiveRef = useRef(isExtensionActive);
+
+  // Keep ref in sync with state for the event listener closure
+  useEffect(() => {
+    isActiveRef.current = isExtensionActive;
+    if (!isExtensionActive) setShowTooltip(false);
+  }, [isExtensionActive]);
 
   // Simulate extension behavior in the React app
   useEffect(() => {
     const handleMouseUp = () => {
+      if (!isActiveRef.current) return;
+
       setTimeout(() => {
         const selection = window.getSelection();
         if (!selection) return;
         
-        const text = selection.toString().trim();
+        let text = selection.toString().trim();
+        
+        // Strip punctuation from the beginning and end of the selection
+        text = text.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
         
         if (text && text.length > 1 && text.length < 30 && /^[a-zA-Z\s-]+$/.test(text)) {
           const range = selection.getRangeAt(0);
@@ -86,11 +99,25 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 text-blue-600 font-bold text-xl">
             <BookOpen className="w-6 h-6" />
-            <span>Quick Dictionary</span>
+            <span>WordLens</span>
           </div>
           <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-            <a href="#demo" className="hover:text-blue-600 transition-colors">Live Demo</a>
-            <a href="#installation" className="hover:text-blue-600 transition-colors">Installation</a>
+            <button 
+              onClick={() => setIsExtensionActive(!isExtensionActive)}
+              className={`relative flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${isExtensionActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+              title="Toggle Extension"
+            >
+              <Power className="w-4 h-4" />
+              <span>{isExtensionActive ? 'ON' : 'OFF'}</span>
+              {isExtensionActive && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+              )}
+            </button>
+            <a href="#demo" className="hover:text-blue-600 transition-colors hidden sm:block">Live Demo</a>
+            <a href="#installation" className="hover:text-blue-600 transition-colors hidden sm:block">Installation</a>
           </div>
         </div>
       </header>

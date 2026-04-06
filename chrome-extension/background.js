@@ -1,6 +1,28 @@
 // background.js
 // Handles API requests to avoid CORS issues on some pages and caches results
 
+// Set initial badge state on load
+chrome.storage.local.get(['isActive'], (result) => {
+  const isActive = result.isActive !== false; // default to true
+  chrome.action.setBadgeText({ text: isActive ? 'ON' : 'OFF' });
+  chrome.action.setBadgeBackgroundColor({ color: isActive ? '#10b981' : '#64748b' });
+  if (result.isActive === undefined) {
+    chrome.storage.local.set({ isActive: true });
+  }
+});
+
+// Handle icon click (Toggle ON/OFF)
+chrome.action.onClicked.addListener((tab) => {
+  chrome.storage.local.get(['isActive'], (result) => {
+    const newState = result.isActive === false ? true : false;
+    chrome.storage.local.set({ isActive: newState });
+    
+    // Update the badge to act as a "glow" indicator
+    chrome.action.setBadgeText({ text: newState ? 'ON' : 'OFF' });
+    chrome.action.setBadgeBackgroundColor({ color: newState ? '#10b981' : '#64748b' });
+  });
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fetchMeaning') {
     const word = request.word.toLowerCase();

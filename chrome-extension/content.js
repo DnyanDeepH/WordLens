@@ -1,8 +1,27 @@
 // content.js
 // Detects text selection and renders the tooltip
 
+console.log("WordLens extension loaded on this page.");
+
 let tooltip = null;
 let hideTimeout = null;
+let isActive = true;
+
+// Load initial state
+chrome.storage.local.get(['isActive'], (result) => {
+  if (result.isActive !== undefined) {
+    isActive = result.isActive;
+  }
+});
+
+// Listen for state changes from the background script (when user clicks the icon)
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.isActive !== undefined) {
+    isActive = changes.isActive.newValue;
+    console.log("WordLens is now", isActive ? "ON" : "OFF");
+    if (!isActive) hideTooltip();
+  }
+});
 
 function createTooltip() {
   if (tooltip) return;
@@ -34,12 +53,19 @@ document.addEventListener('mousedown', (e) => {
 
 // Listen for text selection
 document.addEventListener('mouseup', (e) => {
+  if (!isActive) return; // Do nothing if extension is toggled off
+
   // Debounce to allow selection to complete
   setTimeout(() => {
     const selection = window.getSelection();
     if (!selection) return;
     
-    const text = selection.toString().trim();
+    let text = selection.toString().trim();
+    
+    // Strip punctuation from the beginning and end of the selection (e.g. "word," -> "word")
+    text = text.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
+    
+    console.log("WordLens Selected:", text); // Debug log to see what is being captured
     
     // Validate selection: 1-30 chars, mostly alphabetic
     if (text && text.length > 1 && text.length < 30 && /^[a-zA-Z\s-]+$/.test(text)) {
@@ -53,6 +79,12 @@ document.addEventListener('mouseup', (e) => {
       
       // Send message to background script to fetch data
       chrome.runtime.sendMessage({ action: 'fetchMeaning', word: text }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("WordLens Error:", chrome.runtime.lastError);
+          renderError(text, rect);
+          return;
+        }
+
         if (response && response.success) {
           // background.js now returns the combined object directly, not an array
           renderTooltip(response.data, rect);
