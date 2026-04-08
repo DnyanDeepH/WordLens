@@ -106,18 +106,48 @@
   }
 }
 
-#quick-dict-tooltip .quick-dict-synonyms {
-  font-size: 12px;
-  color: #475569;
+#quick-dict-tooltip .quick-dict-synonyms-section {
   margin-top: 8px;
   border-top: 1px solid #e2e8f0;
-  padding-top: 6px;
+  padding-top: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
-  #quick-dict-tooltip .quick-dict-synonyms {
-    color: #cbd5e1;
+  #quick-dict-tooltip .quick-dict-synonyms-section {
     border-top-color: #334155;
+  }
+}
+
+#quick-dict-tooltip .quick-dict-synonyms-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+#quick-dict-tooltip .quick-dict-synonyms-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#quick-dict-tooltip .quick-dict-synonym-tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  #quick-dict-tooltip .quick-dict-synonyms-title {
+    color: #94a3b8;
+  }
+  #quick-dict-tooltip .quick-dict-synonym-tag {
+    background: #334155;
+    color: #cbd5e1;
   }
 }
 

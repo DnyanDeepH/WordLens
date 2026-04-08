@@ -100,22 +100,33 @@ function positionTooltip(rect) {
   createTooltip();
   tooltip.style.display = 'block';
   
-  // Calculate position
   const tooltipRect = tooltip.getBoundingClientRect();
+  const margin = 10;
   
-  // Default position: below the selection
-  let top = rect.bottom + window.scrollY + 10;
+  // Calculate horizontal position (centered on selection)
   let left = rect.left + window.scrollX + (rect.width / 2) - (tooltipRect.width / 2);
   
-  // Keep within horizontal bounds
-  if (left < 10) left = 10;
-  if (left + tooltipRect.width > window.innerWidth - 10) {
-    left = window.innerWidth - tooltipRect.width - 10;
+  // Horizontal bounds checking
+  const maxLeft = document.documentElement.clientWidth - tooltipRect.width - margin;
+  if (left > maxLeft) left = maxLeft;
+  if (left < margin) left = margin;
+  
+  // Calculate vertical position
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  
+  let top;
+  
+  // Prefer below, but if it doesn't fit and there's more space above, put it above
+  if (spaceBelow < tooltipRect.height + margin && spaceAbove > spaceBelow) {
+    top = rect.top + window.scrollY - tooltipRect.height - margin;
+  } else {
+    top = rect.bottom + window.scrollY + margin;
   }
   
-  // If too low on screen, show above the selection instead
-  if (top + tooltipRect.height > window.scrollY + window.innerHeight - 10) {
-    top = rect.top + window.scrollY - tooltipRect.height - 10;
+  // Final vertical bounds check to ensure it doesn't go off the top of the document
+  if (top < window.scrollY + margin) {
+    top = window.scrollY + margin;
   }
   
   tooltip.style.top = `${top}px`;
@@ -156,9 +167,28 @@ function renderTooltip(data, rect) {
     }
   }
   
-  // Get synonyms if available
-  const synonyms = meaning && meaning.synonyms && meaning.synonyms.length > 0 
-    ? `<div class="quick-dict-synonyms"><strong>Synonyms:</strong> ${meaning.synonyms.slice(0, 3).join(', ')}</div>` 
+  // Get synonyms if available (aggregate from all meanings and definitions)
+  let allSynonyms = [];
+  if (data.meanings) {
+    data.meanings.forEach(m => {
+      if (m.synonyms) allSynonyms.push(...m.synonyms);
+      if (m.definitions) {
+        m.definitions.forEach(d => {
+          if (d.synonyms) allSynonyms.push(...d.synonyms);
+        });
+      }
+    });
+  }
+  // Remove duplicates and limit to 5
+  allSynonyms = [...new Set(allSynonyms)].slice(0, 5);
+  
+  const synonymsHtml = allSynonyms.length > 0 
+    ? `<div class="quick-dict-synonyms-section">
+         <div class="quick-dict-synonyms-title">Synonyms</div>
+         <div class="quick-dict-synonyms-list">
+           ${allSynonyms.map(s => `<span class="quick-dict-synonym-tag">${s}</span>`).join('')}
+         </div>
+       </div>` 
     : '';
 
   const hindiHtml = data.hindiMeaning ? `<div class="quick-dict-hindi">${data.hindiMeaning}</div>` : '';
@@ -173,7 +203,7 @@ function renderTooltip(data, rect) {
     <div class="quick-dict-pos">${partOfSpeech}</div>
     <div class="quick-dict-def">${definition}</div>
     ${exampleHtml}
-    ${synonyms}
+    ${synonymsHtml}
   `;
   positionTooltip(rect);
 }

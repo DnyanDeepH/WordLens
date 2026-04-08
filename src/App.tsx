@@ -8,7 +8,7 @@ import { BookOpen, Download, Info, CheckCircle2, Puzzle, Settings, MousePointer2
 
 export default function App() {
   const [tooltipData, setTooltipData] = useState<any>(null);
-  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, isAbove: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showTooltip, setShowTooltip] = useState(false);
@@ -43,10 +43,26 @@ export default function App() {
           // Don't show if clicking inside the tooltip
           if (tooltipRef.current && tooltipRef.current.contains(selection.anchorNode)) return;
           
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const spaceAbove = rect.top;
+          
           let top = rect.bottom + window.scrollY + 10;
+          let isAbove = false;
+          
+          // If less than ~250px below and more space above, place above
+          if (spaceBelow < 250 && spaceAbove > spaceBelow) {
+            top = rect.top + window.scrollY - 10;
+            isAbove = true;
+          }
+          
           let left = rect.left + window.scrollX + (rect.width / 2);
           
-          setTooltipPos({ top, left });
+          // Prevent horizontal overflow (approximate tooltip width 300px -> 150px half)
+          const maxLeft = document.documentElement.clientWidth - 160;
+          if (left > maxLeft) left = maxLeft;
+          if (left < 160) left = 160;
+          
+          setTooltipPos({ top, left, isAbove });
           setShowTooltip(true);
           setLoading(true);
           setError('');
@@ -236,7 +252,7 @@ export default function App() {
           style={{ 
             top: tooltipPos.top, 
             left: tooltipPos.left,
-            transform: 'translateX(-50%)'
+            transform: tooltipPos.isAbove ? 'translate(-50%, -100%)' : 'translateX(-50%)'
           }}
         >
           {loading ? (
@@ -283,11 +299,35 @@ export default function App() {
                   </div>
                 ) : null;
               })()}
-              {tooltipData.meanings?.[0]?.synonyms?.length > 0 && (
-                <div className="text-xs text-slate-600 dark:text-slate-400 mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-700">
-                  <strong className="font-medium">Synonyms:</strong> {tooltipData.meanings[0].synonyms.slice(0, 3).join(', ')}
-                </div>
-              )}
+              {(() => {
+                let allSynonyms: string[] = [];
+                if (tooltipData.meanings) {
+                  tooltipData.meanings.forEach((m: any) => {
+                    if (m.synonyms) allSynonyms.push(...m.synonyms);
+                    if (m.definitions) {
+                      m.definitions.forEach((d: any) => {
+                        if (d.synonyms) allSynonyms.push(...d.synonyms);
+                      });
+                    }
+                  });
+                }
+                allSynonyms = [...new Set(allSynonyms)].slice(0, 5);
+                
+                return allSynonyms.length > 0 ? (
+                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                    <div className="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1.5">
+                      Synonyms
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allSynonyms.map((syn, idx) => (
+                        <span key={idx} className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs">
+                          {syn}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </div>
           ) : null}
         </div>
